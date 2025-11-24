@@ -1,0 +1,251 @@
+---
+title: "Untitled"
+author: "Efi Defiyati"
+date: "2025-11-17"
+output: html_document
+---
+
+```{r}
+#1. Import Library
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(reshape2)
+
+# 2. Import Dataset
+df <- read_excel("C:/Users/LENOVO/Downloads/Listrik_PDRB.xlsx")
+View(df)
+
+# 3. Melihat Struktur Awal Dataset
+glimpse(df)
+summary(df)
+```
+
+```{r}
+# 4. Data Cleaning
+# 4.1 Menghapus baris duplikat
+df <- df %>% distinct()
+```
+
+```{r}
+# 4.2 Mengecek missing values
+colSums(is.na(df))
+```
+
+```{r}
+# 4.3 Mengisi missing values (jika ada)
+df <- df %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.), median(., na.rm = TRUE), .)))
+```
+
+```{r}
+# 4.4 Mengganti nama kolom agar lebih mudah dipakai
+df <- df %>% 
+  rename(
+    Kota = `Kabupaten/Kota`,
+    Produksi = `Produksi Listrik`,
+    Listrik_Terjual = `Listrik Terjual`,
+    Dipakai_Sendiri = `Dipakai Sendiri`,
+    Susut = `Susut/Hilang`,
+    PDRB = PDRB
+  )
+```
+
+```{r}
+# 5. Statistik Deskriptif
+summary(df)
+```
+
+```{r}
+# 6. Korelasi antar variabel numeric
+df_numeric <- df %>% select(where(is.numeric))
+cor(df_numeric)
+```
+
+```{r}
+# 7. Bar Chart – Produksi Listrik per Kota
+ggplot(df, aes(x = reorder(Kota, -Produksi), y = Produksi, fill = Kota)) +
+  geom_col() +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1,
+      size = 12,
+      face = "bold"
+    ),
+    axis.text.y = element_text(size = 12),
+    axis.title.y = element_text(size = 14, face = "bold"),
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    legend.position = "none",
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  labs(
+    title = "Produksi Listrik per Kabupaten/Kota",
+    y = "Produksi Listrik (kWh)",
+    x = "Kabupaten/Kota"
+  )
+
+```
+
+```{r}
+# 8. Bar Chart – Listrik Terjual per Kota
+library(ggplot2)
+library(scales)
+
+ggplot(df, aes(x = reorder(Kota, -Listrik_Terjual), 
+               y = Listrik_Terjual, fill = Kota)) +
+  geom_col() +
+  scale_y_continuous(labels = comma) +
+
+  labs(
+    title = "Listrik Terjual per Kabupaten/Kota",
+    y = "Listrik Terjual (kWh)",
+    x = ""
+  ) +
+
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(size = 18, hjust = 0.5, face = "bold"),
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+```
+
+```{r}
+# 9.Bar Chart – PDRB per Kota
+ggplot(df, aes(x = reorder(Kota, -PDRB),
+               y = PDRB,
+               fill = Kota)) +
+  geom_col() +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal(base_size = 14) +
+  theme(
+    axis.text.x = element_text(
+      angle = 45,
+      hjust = 1,
+      size = 12,
+      face = "bold"
+    ),
+    axis.text.y = element_text(size = 12),
+    axis.title.y = element_text(size = 14, face = "bold"),
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    legend.position = "none",
+    plot.margin = margin(20, 20, 20, 20)
+  ) +
+  labs(
+    title = "PDRB per Kabupaten/Kota",
+    y = "PDRB (Juta Rupiah)",
+    x = "Kabupaten/Kota"
+  )
+```
+
+```{r}
+# 10. Scatter Plot – Produksi vs PDRB
+ggplot(df, aes(x = Produksi, y = PDRB, label = Kota)) +
+  geom_point(color = "blue", size = 3) +
+  geom_text(vjust = -0.5, size = 3) +
+  theme_minimal() +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +
+  labs(title = "Hubungan Produksi Listrik dan PDRB",
+       x = "Produksi Listrik", y = "PDRB")
+```
+
+```{r}
+# 11. Scatter Plot – Listrik Terjual vs PDRB
+ggplot(df, aes(x = Listrik_Terjual, y = PDRB, label = Kota)) +
+  geom_point(color = "red", size = 3) +
+  geom_text(vjust = -0.5, size = 3) +
+  theme_minimal() +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +
+  labs(title = "Hubungan Listrik Terjual dengan PDRB",
+       x = "Listrik Terjual", y = "PDRB")
+```
+
+```{r}
+# 12. Boxplot – Distribusi Semua Jenis Listrik
+df_long <- df %>%
+  select(Kota, Produksi, Listrik_Terjual, Dipakai_Sendiri, Susut) %>%
+  melt(id = "Kota")
+
+ggplot(df_long, aes(x = variable, y = value, fill = variable)) +
+  geom_boxplot() +
+  theme_minimal() +
+  scale_y_continuous(labels = comma) +
+  labs(title = "Distribusi Nilai Variabel Listrik",
+       x = "Variabel", y = "Nilai")
+```
+
+```{r}
+# 13. Heatmap Korelasi
+df_num <- df %>% select(where(is.numeric))
+m <- cor(df_num)
+
+ggplot(melt(m), aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1,1)) +
+  theme_minimal() +
+  labs(title = "Heatmap Korelasi Variabel Listrik & PDRB")
+```
+```{r}
+urutan_kota <- c(
+  "Ogan Komering Ulu",
+  "Ogan Komering Ilir",
+  "Muara Enim",
+  "Lahat",
+  "Musi Rawas",
+  "Musi Banyuasin",
+  "Ogan Komering Ulu Selatan",
+  "Ogan Komering Ulu Timur",
+  "Ogan Ilir",
+  "Empat Lawang",
+  "Musi Rawas Utara"
+)
+
+df$Kota <- factor(df$Kota, levels = urutan_kota)
+
+```
+ 
+```{r}
+df_long <- df %>%
+  pivot_longer(
+    cols = c(Produksi, Listrik_Terjual),
+    values_to = "kWh",
+    names_to = "Jenis"
+  )
+```
+
+```{r}
+# 14. Line Chart
+ggplot(df_long, aes(x = Kota, y = kWh,
+                    color = Jenis,
+                    group = Jenis)) +
+  geom_line(linewidth = 1.2, alpha = 0.9) +
+  geom_point(size = 4, alpha = 0.95) +
+  scale_color_manual(values = c(
+    "Produksi" = "#d4a017",       # warna emas kecoklatan
+    "Listrik_Terjual" = "#2c7fb8" # biru halus
+  )) +
+  labs(title = "Produksi vs Listrik Terjual per Kabupaten/Kota",
+       x = "Kabupaten/Kota",
+       y = "kWh",
+       color = "") +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top",
+    legend.text = element_text(size = 12),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(linewidth = 0.3, color = "grey80"),
+    axis.title.x = element_text(size = 14),
+    axis.title.y = element_text(size = 14)
+  )
+```
